@@ -22,7 +22,6 @@ public class TodoService {
 
     public TodoEntry createTodo(String name) {
         TodoEntry entry = new TodoEntry(name);
-        // Beispiel: Fällig morgen
         entry.setDue(LocalDateTime.now().plusDays(1));
         return todoEntryRepository.save(entry);
     }
