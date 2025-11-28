@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class TodoService {
@@ -20,9 +21,9 @@ public class TodoService {
         return todoEntryRepository.findAll();
     }
 
-    public TodoEntry createTodo(String name) {
-        TodoEntry entry = new TodoEntry(name);
-        entry.setDue(LocalDateTime.now().plusDays(1));
-        return todoEntryRepository.save(entry);
+    public List<TodoEntry> createTestTodo() {
+        TodoEntry entry = new TodoEntry("Test-Todo " + UUID.randomUUID());
+        todoEntryRepository.save(entry);
+        return todoEntryRepository.findAll();
     }
 }

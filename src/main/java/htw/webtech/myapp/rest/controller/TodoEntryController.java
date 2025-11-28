@@ -25,10 +25,8 @@ public class TodoEntryController {
         return ResponseEntity.ok(todoService.getAllTodo());
     }
 
-    // Einfacher POST zum Anlegen eines Todos
-    @PostMapping("/todo/test-create")
-    public ResponseEntity<TodoEntry> createTodo(@RequestBody TodoEntry body) {
-        TodoEntry saved = todoService.createTodo(body.getName());
-        return ResponseEntity.ok(saved);
+    @GetMapping("/todo/test-create")
+    public ResponseEntity<List<TodoEntry>> createTestTodo() {
+        return ResponseEntity.ok(todoService.createTestTodo());
     }
 }
