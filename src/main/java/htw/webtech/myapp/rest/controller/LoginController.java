@@ -3,13 +3,14 @@ package htw.webtech.myapp.rest.controller;
 import htw.webtech.myapp.business.service.AuthService;
 import htw.webtech.myapp.rest.model.LoginRequest;
 import htw.webtech.myapp.rest.model.LoginResponse;
+import htw.webtech.myapp.rest.model.RegisterRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(origins = {"http://localhost:5173",
-                       "https://frnawebfront2.onrender.com"
+        "https://frnawebfront2.onrender.com"
 })
 public class LoginController {
 
@@ -27,6 +28,17 @@ public class LoginController {
         } else {
             return ResponseEntity.status(401)
                     .body(new LoginResponse(false, null, "Ungültige Zugangsdaten"));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<LoginResponse> register(@RequestBody RegisterRequest req) {
+        String token = authService.register(req.getEmail(), req.getPassword());
+        if (token != null) {
+            return ResponseEntity.ok(new LoginResponse(true, token, "registriert"));
+        } else {
+            return ResponseEntity.status(400)
+                    .body(new LoginResponse(false, null, "Registrierung fehlgeschlagen (E-Mail evtl. schon vergeben)"));
         }
     }
 }
