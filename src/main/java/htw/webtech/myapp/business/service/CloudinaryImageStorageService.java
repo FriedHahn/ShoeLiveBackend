@@ -32,12 +32,10 @@ public class CloudinaryImageStorageService implements ImageStorageService {
 
         List<byte[]> parts = new ArrayList<>();
 
-        // upload_preset
         parts.add(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
         parts.add(("Content-Disposition: form-data; name=\"upload_preset\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
         parts.add((uploadPreset + "\r\n").getBytes(StandardCharsets.UTF_8));
 
-        // file
         String safeName = (filename == null || filename.isBlank()) ? "upload.jpg" : filename;
         String ct = (contentType == null || contentType.isBlank()) ? "application/octet-stream" : contentType;
 
@@ -47,7 +45,6 @@ public class CloudinaryImageStorageService implements ImageStorageService {
         parts.add(fileBytes);
         parts.add("\r\n".getBytes(StandardCharsets.UTF_8));
 
-        // end
         parts.add(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
 
         HttpRequest req = HttpRequest.newBuilder()

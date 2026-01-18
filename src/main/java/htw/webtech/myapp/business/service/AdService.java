@@ -134,7 +134,6 @@ public class AdService {
         String raw = request.getPrice().trim();
         if (raw.isEmpty()) return;
 
-        // Komma als Dezimaltrenner zulassen
         raw = raw.replace(',', '.');
 
         request.setPrice(raw);
