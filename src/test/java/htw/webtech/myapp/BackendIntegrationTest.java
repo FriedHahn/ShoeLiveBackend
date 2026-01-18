@@ -18,15 +18,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import htw.webtech.myapp.business.service.ImageStorageService;
+import org.mockito.ArgumentMatchers;
+
 
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Comparator;
 import java.util.List;
 
+
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(
         properties = {
@@ -50,6 +56,9 @@ class BackendIntegrationTest {
     @Autowired private NotificationEntryRepository notificationRepo;
     @Autowired private UserEntryRepository userRepo;
     @Autowired private SessionTokenRepository sessionTokenRepo;
+
+    @MockitoBean
+    private ImageStorageService imageStorageService;
 
     @BeforeEach
     void resetDbAndUploads() throws Exception {
@@ -317,6 +326,12 @@ class BackendIntegrationTest {
 
     @Test
     void imageUploadAndDelete() throws Exception {
+        when(imageStorageService.uploadImage(
+                ArgumentMatchers.<byte[]>any(),
+                ArgumentMatchers.anyString(),
+                ArgumentMatchers.anyString()
+        )).thenReturn("https://res.cloudinary.com/test/image/upload/v1/ad_test.jpg");
+
         String token = registerAndLogin(uniqueEmail("img"), "1234");
         long id = createAd(token, "Boot", "41", "20");
 
@@ -328,12 +343,13 @@ class BackendIntegrationTest {
                         .file(file)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.imagePath", notNullValue()));
+                .andExpect(jsonPath("$.imagePath", notNullValue()))
+                .andExpect(jsonPath("$.imagePath", startsWith("https://")));
 
         mockMvc.perform(delete("/api/ads/" + id + "/image")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.imagePath").doesNotExist());
+                .andExpect(jsonPath("$.imagePath", nullValue()));
     }
 
     @Test

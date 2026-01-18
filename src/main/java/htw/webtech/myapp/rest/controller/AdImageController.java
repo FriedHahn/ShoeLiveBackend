@@ -1,23 +1,13 @@
 package htw.webtech.myapp.rest.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import htw.webtech.myapp.business.service.AuthService;
+import htw.webtech.myapp.business.service.ImageStorageService;
 import htw.webtech.myapp.persistence.entity.AdEntry;
 import htw.webtech.myapp.persistence.repository.AdEntryRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/ads")
@@ -29,11 +19,12 @@ public class AdImageController {
 
     private final AdEntryRepository adRepo;
     private final AuthService authService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ImageStorageService imageStorageService;
 
-    public AdImageController(AdEntryRepository adRepo, AuthService authService) {
+    public AdImageController(AdEntryRepository adRepo, AuthService authService, ImageStorageService imageStorageService) {
         this.adRepo = adRepo;
         this.authService = authService;
+        this.imageStorageService = imageStorageService;
     }
 
     @PostMapping("/{id}/image")
@@ -65,8 +56,7 @@ public class AdImageController {
                 return ResponseEntity.badRequest().body("Nur jpg, jpeg, png, webp erlaubt");
             }
 
-            String secureUrl = uploadToCloudinary(file.getBytes(), file.getOriginalFilename(), file.getContentType());
-
+            String secureUrl = imageStorageService.uploadImage(file.getBytes(), file.getOriginalFilename(), file.getContentType());
             ad.setImagePath(secureUrl);
             adRepo.save(ad);
 
@@ -101,56 +91,5 @@ public class AdImageController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Loeschen fehlgeschlagen");
         }
-    }
-
-    private String uploadToCloudinary(byte[] fileBytes, String filename, String contentType) throws Exception {
-        String cloudName = System.getenv("CLOUDINARY_CLOUD_NAME");
-        String uploadPreset = System.getenv("CLOUDINARY_UPLOAD_PRESET");
-
-        if (cloudName == null || cloudName.isBlank() || uploadPreset == null || uploadPreset.isBlank()) {
-            throw new IllegalStateException("Cloudinary ENV fehlt (CLOUDINARY_CLOUD_NAME/CLOUDINARY_UPLOAD_PRESET)");
-        }
-
-        String boundary = "----Boundary" + UUID.randomUUID();
-        String url = "https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload";
-
-        List<byte[]> parts = new ArrayList<>();
-
-        parts.add(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-        parts.add(("Content-Disposition: form-data; name=\"upload_preset\"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-        parts.add((uploadPreset + "\r\n").getBytes(StandardCharsets.UTF_8));
-
-        String safeName = (filename == null || filename.isBlank()) ? "upload.jpg" : filename;
-        String ct = (contentType == null || contentType.isBlank()) ? "application/octet-stream" : contentType;
-
-        parts.add(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-        parts.add(("Content-Disposition: form-data; name=\"file\"; filename=\"" + safeName + "\"\r\n").getBytes(StandardCharsets.UTF_8));
-        parts.add(("Content-Type: " + ct + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
-        parts.add(fileBytes);
-        parts.add("\r\n".getBytes(StandardCharsets.UTF_8));
-
-        parts.add(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .POST(HttpRequest.BodyPublishers.ofByteArrays(parts))
-                .build();
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-
-        if (res.statusCode() / 100 != 2) {
-            throw new IllegalStateException("Cloudinary Upload fehlgeschlagen (Status " + res.statusCode() + ")");
-        }
-
-        JsonNode json = objectMapper.readTree(res.body());
-        String secureUrl = json.path("secure_url").asText();
-
-        if (secureUrl == null || secureUrl.isBlank()) {
-            throw new IllegalStateException("Cloudinary Response ohne secure_url");
-        }
-
-        return secureUrl;
     }
 }
